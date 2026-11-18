@@ -58,8 +58,12 @@ export function visibleYears(years, mode, active, comparison, enabled) {
   return new Set(years.filter(y => enabled.has(y) && (mode === 'all' || (mode === 'cumulative' ? y <= active : mode === 'compare' ? y === active || y === comparison : y === active))));
 }
 export function yearColor(year, min, max) {
-  const t = max === min ? 1 : Math.min(1, Math.max(0, (year-min)/(max-min)));
-  const colors = [[39,73,124],[55,117,192],[96,165,250]], i = t < .5 ? 0 : 1, k = i ? (t-.5)*2 : t*2;
+  const values = [year,min,max].map(value => value == null || String(value).trim() === '' ? NaN : Number(value));
+  if (!values.every(Number.isFinite)) return 'rgb(148,163,184)';
+  const [value,a,b] = values, oldest = Math.min(a,b), newest = Math.max(a,b);
+  // Calendar-year spacing keeps each shoreline's color stable across display modes.
+  const t = newest === oldest ? 1 : Math.min(1, Math.max(0, (value-oldest)/(newest-oldest)));
+  const colors = [[239,68,68],[250,204,21],[34,197,94]], i = t < .5 ? 0 : 1, k = i ? (t-.5)*2 : t*2;
   return `rgb(${colors[i].map((v,j) => Math.round(v + (colors[i+1][j]-v)*k)).join(',')})`;
 }
 export function distanceMeters(a,b) {

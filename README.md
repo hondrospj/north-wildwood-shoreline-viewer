@@ -2,7 +2,9 @@
 
 [Open the viewer](https://hondrospj.github.io/north-wildwood-shoreline-viewer/)
 
-A minimal, full-screen map of North Wildwood's historical shorelines, with ShorelySafe's navy and blue styling. Browse 70 recorded years from 1771 through 2025, compare shorelines, play the timeline, switch basemaps, and measure shoreline positions along a transect.
+A map of North Wildwood's historical shorelines, with ShorelySafe's navy and blue styling and a fixed right-hand sidebar. Browse 70 recorded years from 1771 through 2025, compare shorelines, play the timeline, switch basemaps, and measure shoreline positions along a transect.
+
+Shoreline colors follow calendar year: red for the oldest, yellow in the middle, and green for the newest. The same scale is used in every display mode and the measurement plot. Compare shows two year selectors together, with solid and dashed line samples. The satellite switch is always available at the top of the sidebar; loaded basemaps are retained for fast repeat switching. On smaller screens the sidebar becomes narrower and scrolls independently of the map.
 
 ## Local development
 

@@ -1,4 +1,4 @@
-import {normalizeArchive, visibleYears, yearColor, lineLength, distanceMeters, transectCrossings} from './core.mjs?v=simple-20261117';
+import {normalizeArchive, visibleYears, yearColor, lineLength, distanceMeters, transectCrossings} from './core.mjs?v=age-colors-20261118';
 import {selectSeawardPositions,positionPlotSvg,filterPositionYears,shorelineChanges,signedFeet} from './transect-plot.mjs?v=reference-year-1';
 import {floodmapperBasemap} from './floodmapper-basemap.mjs';
 
@@ -10,14 +10,14 @@ const groups = new Map();
 let toastTimer, loading=false, tileErrors=0;
 const map = L.map('map', {zoomControl:false,zoomSnap:.25,minZoom:4,maxZoom:20}).setView([38.971,-74.826],13);
 map.createPane('basemapColorPane').style.zIndex='200';
-L.control.zoom({position:'topright',zoomInText:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',zoomOutText:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>'}).addTo(map);
+map.createPane('satellitePane').style.zIndex='201';
 L.control.scale({position:'bottomleft',imperial:true,metric:true,maxWidth:100}).addTo(map);
 const bases = {
   street:floodmapperBasemap('basemapColorPane'),
-  satellite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Imagery © Esri and contributors',maxNativeZoom:19,maxZoom:20})
+  satellite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{pane:'satellitePane',attribution:'Imagery © Esri and contributors',maxNativeZoom:19,maxZoom:20})
 };
 bases.street.addTo(map);
-Object.values(bases).forEach(layer=>layer.on('tileerror',()=>{if(++tileErrors===6)toast('Some map tiles could not load. Check your connection or switch the Satellite option.');}));
+Object.values(bases).forEach(layer=>layer.on('tileerror',()=>{if(layer===bases[state.base]&&++tileErrors===6)toast('Some map tiles could not load. Check your connection or switch the Satellite option.');}));
 const measureLayer=L.layerGroup().addTo(map),crossingLayer=L.layerGroup().addTo(measureLayer);
 let measureLine=null,measureLabel=null,measureMarkers=[],measurementView=null;
 L.DomEvent.disableClickPropagation($('measurePanel'));
@@ -46,6 +46,7 @@ function buildGroups(){
   }
 }
 function redraw(){
+  if(state.mode==='compare'&&state.compare===state.year)state.compare=state.years.find(year=>year!==state.year)??state.year;
   const shown=visibleYears(state.years,state.mode,state.year,state.compare,state.enabled);
   for(const [year,group] of groups){
     if(shown.has(year)){if(!map.hasLayer(group))group.addTo(map);group.setStyle(style);}
@@ -55,7 +56,10 @@ function redraw(){
   $('mapCaption').textContent=state.years.length?(state.mode==='compare'?`Comparing ${state.year} and ${state.compare}`:state.mode==='all'?`All ${state.years.length} recorded shoreline years`:`Shoreline recorded in ${state.year}`):'North Wildwood shoreline map';
   document.querySelectorAll('[data-mode]').forEach(button=>{const selected=button.dataset.mode===state.mode;button.classList.toggle('active',selected);button.setAttribute('aria-pressed',String(selected));button.disabled=!state.years.length;});
   $('compareControls').hidden=state.mode!=='compare';
-  $('comparisonKey').innerHTML=state.years.length?`<span><i style="background:${color(state.year)}"></i>${state.year} solid</span>${state.compare===state.year?'':`<span><i style="background:${color(state.compare)}"></i>${state.compare} dashed</span>`}`:'';
+  $('activeLineLabel').hidden=state.mode!=='compare';
+  $('activeYearLabel').textContent=state.mode==='compare'?'First year':'Year';
+  $('activeYearSwatch').style.color=color(state.year);$('compareYearSwatch').style.color=color(state.compare);
+  $('comparisonKey').textContent=state.mode==='compare'?`${state.year} solid; ${state.compare} dashed`:'';
   updateTimeline();updateMeasure();
 }
 function updateTimeline(){
@@ -68,7 +72,7 @@ function updateTimeline(){
   $('measureButton').disabled=!ready;$('fitButton').disabled=!ready;
 }
 function setMode(mode){if(!state.years.length||!['single','compare','all'].includes(mode))return;if(!$('measurePanel').hidden)clearMeasurement();state.mode=mode;redraw();}
-function setYear(year,scan=false){year=Number(year);if(!state.years.includes(year))return;if(!$('measurePanel').hidden)clearMeasurement();state.year=year;if(scan&&state.mode==='all')state.mode='single';redraw();}
+function setYear(year,scan=false){year=Number(year);if(!state.years.includes(year))return;if(!$('measurePanel').hidden)clearMeasurement();if(state.mode==='compare'&&year===state.compare)state.compare=state.year;state.year=year;if(scan&&state.mode==='all')state.mode='single';redraw();}
 function advance(delta=1){const next=state.years.indexOf(state.year)+delta;if(next<0||next>=state.years.length)return false;setYear(state.years[next],true);return true;}
 function stopPlayback(){clearInterval(state.playing);state.playing=null;$('play').setAttribute('aria-pressed','false');$('play').setAttribute('aria-label','Play shoreline timeline');$('play').innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>';}
 function startPlayback(){
@@ -79,41 +83,32 @@ function startPlayback(){
 function fit(){
   const bounds=L.latLngBounds([]);for(const group of groups.values())bounds.extend(group.getBounds());
   if(bounds.isValid()){
-    const mapRect=$('mainMap').getBoundingClientRect(),timelineRect=$('timelineDock').getBoundingClientRect();
-    const bottom=Math.max(35,mapRect.bottom-timelineRect.top+16);
-    map.fitBounds(bounds,{paddingTopLeft:[28,84],paddingBottomRight:[28,bottom],maxZoom:15,animate:false});
+    map.fitBounds(bounds,{padding:[24,24],maxZoom:15,animate:false});
   }
 }
 function chooseBasemap(base){
   if(!bases[base])return;
-  for(const layer of Object.values(bases))if(map.hasLayer(layer))layer.remove();bases[base].addTo(map);state.base=base;tileErrors=0;
+  // Retain the vector renderer and loaded imagery so repeated switches are immediate.
+  if(base==='satellite'&&!map.hasLayer(bases.satellite))bases.satellite.addTo(map);
+  map.getPane('satellitePane').style.visibility=base==='satellite'?'visible':'hidden';
+  state.base=base;tileErrors=0;
   $('satelliteToggle').classList.toggle('on',base==='satellite');$('satelliteToggle').setAttribute('aria-checked',String(base==='satellite'));
 }
-function closeOptions(restoreFocus=true){
-  const focusedInside=$('optionsPanel').contains(document.activeElement);
-  $('optionsPanel').hidden=true;$('optionsButton').setAttribute('aria-expanded','false');
-  if(restoreFocus&&focusedInside)$('optionsButton').focus();
-}
-$('optionsButton').addEventListener('click',()=>{
-  if(!$('optionsPanel').hidden){closeOptions();return;}
-  $('optionsPanel').hidden=false;$('optionsButton').setAttribute('aria-expanded','true');$('closeOptions').focus();
-});
-$('closeOptions').addEventListener('click',()=>closeOptions());
-document.addEventListener('pointerdown',event=>{if(!$('optionsPanel').hidden&&!$('optionsPanel').contains(event.target)&&!$('optionsButton').contains(event.target))closeOptions(false);});
-$('optionsPanel').addEventListener('focusout',event=>{const next=event.relatedTarget;if(next&&!$('optionsPanel').hidden&&!$('optionsPanel').contains(next)&&next!==$('optionsButton'))closeOptions(false);});
-$('aboutButton').addEventListener('click',()=>{closeOptions(false);$('aboutDialog').showModal();});
+$('aboutButton').addEventListener('click',()=>$('aboutDialog').showModal());
 document.querySelectorAll('.close-dialog').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
-$('aboutDialog').addEventListener('close',()=>$('optionsButton').focus());
+$('aboutDialog').addEventListener('close',()=>$('aboutButton').focus());
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{stopPlayback();setMode(button.dataset.mode);}));
 $('activeYear').addEventListener('change',event=>{stopPlayback();setYear(event.target.value,true);});
-$('compareYear').addEventListener('change',event=>{const year=Number(event.target.value);if(state.years.includes(year)){stopPlayback();if(!$('measurePanel').hidden)clearMeasurement();state.compare=year;redraw();}});
+$('compareYear').addEventListener('change',event=>{const year=Number(event.target.value);if(state.years.includes(year)){stopPlayback();if(!$('measurePanel').hidden)clearMeasurement();if(year===state.year)state.year=state.compare;state.compare=year;redraw();}});
 $('satelliteToggle').addEventListener('click',()=>chooseBasemap(state.base==='satellite'?'street':'satellite'));
 $('timeSlider').addEventListener('input',event=>{stopPlayback();setYear(state.years[Number(event.target.value)],true);});
 $('previous').addEventListener('click',()=>{stopPlayback();advance(-1);});$('next').addEventListener('click',()=>{stopPlayback();advance();});
 $('play').addEventListener('click',()=>state.playing?stopPlayback():startPlayback());
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPlayback();});
-$('fitButton').addEventListener('click',()=>{fit();closeOptions();});
-map.on('click',()=>closeOptions(false));
+$('fitButton').addEventListener('click',fit);
+$('zoomIn').addEventListener('click',()=>map.zoomIn());$('zoomOut').addEventListener('click',()=>map.zoomOut());
+function updateZoom(){ $('zoomIn').disabled=map.getZoom()>=map.getMaxZoom();$('zoomOut').disabled=map.getZoom()<=map.getMinZoom(); }
+map.on('zoomend',updateZoom);updateZoom();
 new ResizeObserver(()=>map.invalidateSize({pan:false})).observe($('mainMap'));
 function download(blob,name){const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
@@ -129,7 +124,7 @@ function measurementMode(on){
     measureLine=null;measureLabel=null;measureMarkers=[];
     $('measurePanel').hidden=false;document.body.classList.add('measuring-panel-open');$('redrawMeasure').hidden=true;
     $('measureInstructions').textContent=state.seawardEnd==='B'?'Click landward point A, then seaward point B.':'Click seaward point A, then landward point B.';
-    $('measureDistance').textContent='—';$('crossings').replaceChildren();$('positionPlot').replaceChildren();$('transectPlot').hidden=true;$('plotControls').hidden=true;$('plottedValues').hidden=true;$('plottedValues').open=false;$('downloadCrossings').hidden=true;closeOptions(false);state.mode='all';redraw();$('clearMeasure').focus();
+    $('measureDistance').textContent='—';$('crossings').replaceChildren();$('positionPlot').replaceChildren();$('transectPlot').hidden=true;$('plotControls').hidden=true;$('plottedValues').hidden=true;$('plottedValues').open=false;$('downloadCrossings').hidden=true;state.mode='all';redraw();$('clearMeasure').focus();
   }
 }
 function clearMeasurement(){
@@ -137,7 +132,7 @@ function clearMeasurement(){
   measurementMode(false);state.measurePoints=[];state.crossings=[];state.positions=[];measureLayer.clearLayers();crossingLayer.clearLayers();
   measureLine=null;measureLabel=null;measureMarkers=[];$('measurePanel').hidden=true;document.body.classList.remove('measuring-panel-open');
   if(measurementView){const view=measurementView;measurementView=null;Object.assign(state,view);redraw();}
-  if(focusedInside)$('optionsButton').focus();
+  if(focusedInside)$('measureButton').focus();
 }
 const lengthText=metres=>`${Math.round(metres/.3048).toLocaleString()} ft`;
 function drawMeasureLine(a,b){
@@ -215,8 +210,7 @@ $('downloadCrossings').addEventListener('click',()=>{const rows=['year,reference
 
 document.addEventListener('keydown',event=>{
   if(event.key!=='Escape'||$('aboutDialog').open)return;
-  if(!$('optionsPanel').hidden){closeOptions();event.preventDefault();return;}
-  if(!$('measurePanel').hidden){clearMeasurement();$('optionsButton').focus();}
+  if(!$('measurePanel').hidden){clearMeasurement();$('measureButton').focus();}
 });
 function openArchive(raw){
   const normalized=normalizeArchive(raw);
