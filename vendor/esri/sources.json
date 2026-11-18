@@ -1,0 +1,29 @@
+{
+  "retrieved": "2026-11-17",
+  "assets": [
+    {
+      "file": "esri-leaflet-3.0.19.js",
+      "source": "https://unpkg.com/esri-leaflet@3.0.19/dist/esri-leaflet.js",
+      "bytes": 67534,
+      "sha256": "68e348e7e50ac6900f7bd111679d7108c84d5df200582b24c1429eac5ea72514"
+    },
+    {
+      "file": "esri-leaflet-3.0.19-LICENSE",
+      "source": "https://unpkg.com/esri-leaflet@3.0.19/LICENSE",
+      "bytes": 14073,
+      "sha256": "ca64ae38a8d7f5d7785f2c1440c009ebe19b9d368b63408a96dc2c4855b8bd28"
+    },
+    {
+      "file": "esri-leaflet-vector-4.3.2.js",
+      "source": "https://unpkg.com/esri-leaflet-vector@4.3.2/dist/esri-leaflet-vector.js",
+      "bytes": 814897,
+      "sha256": "b497c8367b8732e5c9adabd0ee5e0fb2e1508d82551a8257e2da9f0ec331eab9"
+    },
+    {
+      "file": "esri-leaflet-vector-4.3.2-LICENSE",
+      "source": "https://unpkg.com/esri-leaflet-vector@4.3.2/LICENSE",
+      "bytes": 11586,
+      "sha256": "97d2fd7edc26f072a7a2eab4f239190e0f5b6ea80a1e11f1a649b949bfd25975"
+    }
+  ]
+}

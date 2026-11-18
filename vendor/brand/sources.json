@@ -1,0 +1,24 @@
+{
+  "retrieved": "2026-11-17",
+  "assets": [
+    {
+      "file": "inter-4.1-variable.woff2",
+      "source": "https://cupajoe.live/north-wildwood/floodmapper/assets/fonts/inter-4.1-variable.woff2",
+      "bytes": 352240,
+      "sha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3"
+    },
+    {
+      "file": "inter-4.1-OFL.txt",
+      "source": "https://cupajoe.live/north-wildwood/floodmapper/assets/fonts/inter-4.1-OFL.txt",
+      "bytes": 4380,
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+    },
+    {
+      "file": "shorelysafe-logo.webp",
+      "source": "https://cupajoe.live/north-wildwood/floodmapper/assets/app/branding.js?v=5218502b14ba05c5",
+      "source_field": "embedded src data:image/webp",
+      "bytes": 4568,
+      "sha256": "153787f78cdb86ccb1e53c9e138312a9874d78133ce4483ba9e6cf324aba04c1"
+    }
+  ]
+}
